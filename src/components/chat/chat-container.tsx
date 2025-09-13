@@ -5,13 +5,15 @@ import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
 import { api } from '@/lib/api/trpc';
 
+import { Message, ChatSession } from '@/types/chat';
+
 type ChatContainerProps = {
   sessionId: string;
-  initialMessages?: any[];
+  initialMessages?: Message[];
 };
 
 export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainerProps) {
-  const [messages, setMessages] = useState<any[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -20,7 +22,7 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
   const utils = api.useUtils();
   
   // Fetch messages with pagination
-  const { data: messageData, refetch } = api.chat.getMessages.useQuery(
+  const { data: messageData } = api.chat.getMessages.useQuery(
     {
       sessionId,
       limit: 20,
@@ -28,10 +30,12 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
     },
     {
       enabled: !!sessionId,
-      onSettled: (data:any) => {
-        setMessages(data.messages);
-        setCursor(data.nextCursor || null);
-        setHasMore(!!data.nextCursor);
+      onSettled: (data: ChatSession | undefined) => {
+        if (data) {
+          setMessages(data.messages);
+          setCursor(data.nextCursor || null);
+          setHasMore(!!data.nextCursor);
+        }
       },
     }
   );

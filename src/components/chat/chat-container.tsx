@@ -30,15 +30,17 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
     },
     {
       enabled: !!sessionId,
-      onSettled: (data: ChatSession | undefined) => {
-        if (data) {
-          setMessages(data.messages);
-          setCursor(data.nextCursor || null);
-          setHasMore(!!data.nextCursor);
-        }
-      },
     }
   );
+
+  // Update messages when data changes
+  useEffect(() => {
+    if (messageData) {
+      setMessages(messageData.messages);
+      setCursor(messageData.nextCursor ?? null);
+      setHasMore(!!messageData.nextCursor);
+    }
+  }, [messageData]);
   
   // Load more messages when scrolling up
   const loadMoreMessages = async () => {
@@ -81,11 +83,12 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
     if (!content.trim() || isLoading) return;
 
     // Optimistically add user message
-    const tempUserMessage = {
+    const tempUserMessage: Message = {
       id: `temp-${Date.now()}`,
       content,
-      role: 'user' as const,
+      role: 'user',
       timestamp: new Date(),
+      sessionId
     };
 
     setMessages((prev) => [...prev, tempUserMessage]);

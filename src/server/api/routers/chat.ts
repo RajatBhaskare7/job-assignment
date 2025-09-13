@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { publicProcedure, router } from '../trpc/trpc';
 import { prisma } from '../../../lib/db';
 import { generateCareerCounselingResponse } from '../../../lib/gemini';
+import { Message } from '@/types/chat';
 
 export const chatRouter = router({
   sendMessage: publicProcedure
@@ -32,8 +33,8 @@ export const chatRouter = router({
       });
 
       // Format messages for OpenAI
-      const formattedMessages = sessionMessages.map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
+      const formattedMessages = sessionMessages.map((msg: Message) => ({
+        role: msg.role === 'ai' ? 'assistant' : 'user',
         content: msg.content,
       }));
 

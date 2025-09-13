@@ -1,13 +1,12 @@
 export interface Message {
   id: string;
   content: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'ai';
   timestamp: Date;
   sessionId: string;
 }
 
 export interface ChatSession {
-  id: string;
   messages: Message[];
-  nextCursor?: string | null;
+  nextCursor: string | null;
 }

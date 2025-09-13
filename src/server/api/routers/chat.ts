@@ -1,0 +1,88 @@
+import { z } from 'zod';
+import { publicProcedure, router } from '../trpc/trpc';
+import { prisma } from '../../../lib/db';
+import { generateCareerCounselingResponse } from '../../../lib/gemini';
+
+export const chatRouter = router({
+  sendMessage: publicProcedure
+    .input(
+      z.object({
+        content: z.string(),
+        sessionId: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      // Save user message
+      const userMessage = await prisma.message.create({
+        data: {
+          role: 'user',
+          content: input.content,
+          sessionId: input.sessionId,
+        },
+      });
+
+      // Get session messages for context
+      const sessionMessages = await prisma.message.findMany({
+        where: {
+          sessionId: input.sessionId,
+        },
+        orderBy: {
+          timestamp: 'asc',
+        },
+      });
+
+      // Format messages for OpenAI
+      const formattedMessages = sessionMessages.map((msg: any) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }));
+
+      // Get AI response using our career counseling integration
+      const aiMessageContent = await generateCareerCounselingResponse(formattedMessages);
+
+      // Save AI message
+      const aiMessage = await prisma.message.create({
+        data: {
+          role: 'ai',
+          content: aiMessageContent,
+          sessionId: input.sessionId,
+        },
+      });
+
+      return { userMessage, aiMessage };
+    }),
+
+  getMessages: publicProcedure
+    .input(
+      z.object({
+        sessionId: z.string(),
+        limit: z.number().min(1).max(100).default(50),
+        cursor: z.string().nullish(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { sessionId, limit, cursor } = input;
+
+      const messages = await prisma.message.findMany({
+        where: {
+          sessionId,
+        },
+        take: limit + 1,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: {
+          timestamp: 'desc',
+        },
+      });
+
+      let nextCursor: typeof cursor = undefined;
+      if (messages.length > limit) {
+        const nextItem = messages.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return {
+        messages: messages.reverse(),
+        nextCursor,
+      };
+    }),
+});

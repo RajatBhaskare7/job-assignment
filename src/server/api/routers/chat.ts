@@ -4,6 +4,14 @@ import { prisma } from '../../../lib/db';
 import { generateCareerCounselingResponse } from '../../../lib/gemini';
 import { Message } from '@/types/chat';
 
+const MessageSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  role: z.enum(['user', 'ai', 'assistant']),
+  timestamp: z.date(),
+  sessionId: z.string(),
+});
+
 export const chatRouter = router({
   sendMessage: publicProcedure
     .input(
@@ -81,8 +89,13 @@ export const chatRouter = router({
         nextCursor = nextItem?.id;
       }
 
+      const typedMessages = messages.map((msg: { id: string; role: string; content: string; timestamp: Date; sessionId: string }) => ({
+        ...msg,
+        role: msg.role === 'assistant' ? 'ai' : msg.role as 'user' | 'ai'
+      }));
+
       return {
-        messages: messages.reverse(),
+        messages: typedMessages.reverse(),
         nextCursor,
       };
     }),

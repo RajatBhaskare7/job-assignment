@@ -36,7 +36,12 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
   // Update messages when data changes
   useEffect(() => {
     if (messageData) {
-      setMessages(messageData.messages);
+      // Ensure messages match the expected type
+      const typedMessages: Message[] = messageData.messages.map((msg: { id: string; role: string; content: string; timestamp: Date; sessionId: string }) => ({
+        ...msg,
+        role: msg.role === 'assistant' ? 'ai' : 'user' as const
+      }));
+      setMessages(typedMessages);
       setCursor(messageData.nextCursor ?? null);
       setHasMore(!!messageData.nextCursor);
     }

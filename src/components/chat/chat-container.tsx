@@ -28,7 +28,7 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
     },
     {
       enabled: !!sessionId,
-      onSettled: (data:any) => {
+      onSettled: (data) => {
         setMessages(data.messages);
         setCursor(data.nextCursor || null);
         setHasMore(!!data.nextCursor);

@@ -1,0 +1,13 @@
+@echo off
+echo Cleaning up...
+rd /s /q node_modules\.prisma 2>nul
+rd /s /q node_modules\@prisma 2>nul
+
+echo Installing dependencies...
+call npm install
+
+echo Generating Prisma client...
+call npx prisma generate
+
+echo Building Next.js application...
+call next build

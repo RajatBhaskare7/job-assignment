@@ -5,13 +5,15 @@ import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
 import { api } from '@/lib/api/trpc';
 
+import { Message, ChatSession } from '@/types/chat';
+
 type ChatContainerProps = {
   sessionId: string;
-  initialMessages?: any[];
+  initialMessages?: Message[];
 };
 
 export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainerProps) {
-  const [messages, setMessages] = useState<any[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -20,7 +22,7 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
   const utils = api.useUtils();
   
   // Fetch messages with pagination
-  const { data: messageData, refetch } = api.chat.getMessages.useQuery(
+  const { data: messageData } = api.chat.getMessages.useQuery(
     {
       sessionId,
       limit: 20,
@@ -28,13 +30,22 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
     },
     {
       enabled: !!sessionId,
-      onSettled: (data) => {
-        setMessages(data.messages);
-        setCursor(data.nextCursor || null);
-        setHasMore(!!data.nextCursor);
-      },
     }
   );
+
+  // Update messages when data changes
+  useEffect(() => {
+    if (messageData) {
+      // Ensure messages match the expected type
+      const typedMessages: Message[] = messageData.messages.map((msg: { id: string; role: string; content: string; timestamp: Date; sessionId: string }) => ({
+        ...msg,
+        role: msg.role === 'assistant' ? 'ai' : 'user' as const
+      }));
+      setMessages(typedMessages);
+      setCursor(messageData.nextCursor ?? null);
+      setHasMore(!!messageData.nextCursor);
+    }
+  }, [messageData]);
   
   // Load more messages when scrolling up
   const loadMoreMessages = async () => {
@@ -77,11 +88,12 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
     if (!content.trim() || isLoading) return;
 
     // Optimistically add user message
-    const tempUserMessage = {
+    const tempUserMessage: Message = {
       id: `temp-${Date.now()}`,
       content,
-      role: 'user' as const,
+      role: 'user',
       timestamp: new Date(),
+      sessionId
     };
 
     setMessages((prev) => [...prev, tempUserMessage]);

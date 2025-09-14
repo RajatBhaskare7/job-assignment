@@ -28,7 +28,7 @@ export default function ChatSessionPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center p-4 text-center">
         <h2 className="text-xl font-semibold">Session Not Found</h2>
-        <p className="mt-2 text-muted-foreground">The chat session you're looking for doesn't exist.</p>
+        <p className="mt-2 text-muted-foreground">The chat session you&apos;re looking for doesn&apos;t exist.</p>
       </div>
     );
   }

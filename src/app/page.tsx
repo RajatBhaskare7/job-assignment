@@ -16,7 +16,7 @@ export default function Home() {
         <CardContent className="flex flex-col items-center space-y-4 text-center">
           <MessageSquare className="h-16 w-16 text-primary" />
           <p>
-            Whether you're exploring new career paths, preparing for interviews, or seeking
+            Whether you&apos;re exploring new career paths, preparing for interviews, or seeking
             professional development advice, our AI counselor is here to help.
           </p>
         </CardContent>

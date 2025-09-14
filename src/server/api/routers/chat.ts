@@ -91,7 +91,7 @@ export const chatRouter = router({
 
       const typedMessages = messages.map((msg: { id: string; role: string; content: string; timestamp: Date; sessionId: string }) => ({
         ...msg,
-        role: msg.role === 'assistant' ? 'ai' : msg.role as 'user' | 'ai'
+        role: msg.role === 'ai' || msg.role === 'assistant' ? 'ai' : 'user'
       }));
 
       return {

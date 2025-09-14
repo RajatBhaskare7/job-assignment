@@ -31,10 +31,13 @@ export function ChatInput({ onSendMessage, isLoading = false }: ChatInputProps) 
     }
   }, [message]);
 
-  // Handle Ctrl+Enter or Cmd+Enter to submit
+  // Handle Enter to submit and Shift+Enter for new line
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      handleSubmit(e);
+    if (e.key === 'Enter') {
+      if (!e.shiftKey) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
     }
   };
 

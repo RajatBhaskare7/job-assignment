@@ -35,13 +35,24 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
 
   // Update messages when data changes
   useEffect(() => {
-    if (messageData) {
-      // Ensure messages match the expected type
-      const typedMessages: Message[] = messageData.messages.map((msg: { id: string; role: string; content: string; timestamp: Date; sessionId: string }) => ({
-        ...msg,
-        role: msg.role === 'assistant' ? 'ai' : 'user' as const
-      }));
-      setMessages(typedMessages);
+    if (messageData?.messages) {
+      // Ensure messages match the expected type and remove duplicates
+      const typedMessages: Message[] = messageData.messages
+        .map((msg: { id: string; role: string; content: string; timestamp: Date; sessionId: string }) => ({
+          ...msg,
+          role: msg.role === 'ai' || msg.role === 'assistant' ? 'ai' : 'user'
+        }))
+        .filter((msg, index, self) => 
+          index === self.findIndex((m) => m.id === msg.id)
+        );
+      
+      // Remove any temporary messages that have been replaced
+      const finalMessages = typedMessages.filter(msg => 
+        !msg.id.startsWith('temp-') || 
+        !typedMessages.some(m => !m.id.startsWith('temp-') && m.content === msg.content)
+      );
+      
+      setMessages(finalMessages);
       setCursor(messageData.nextCursor ?? null);
       setHasMore(!!messageData.nextCursor);
     }
@@ -73,7 +84,14 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
   // Send message mutation
   const sendMessageMutation = api.chat.sendMessage.useMutation({
     onSuccess: (data) => {
-      setMessages((prev) => [...prev, data.userMessage, data.aiMessage]);
+      setMessages((prev) => {
+        // Remove temporary message and add new messages, avoiding duplicates
+        const filteredPrev = prev.filter(msg => !msg.id.startsWith('temp-'));
+        const newMessages = [data.userMessage, data.aiMessage].filter(
+          newMsg => !filteredPrev.some(prevMsg => prevMsg.id === newMsg.id)
+        );
+        return [...filteredPrev, ...newMessages];
+      });
       setIsLoading(false);
       // Invalidate the query cache to refresh the session list
       utils.session.getAll.invalidate();
@@ -81,6 +99,8 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
     onError: (error) => {
       console.error('Error sending message:', error);
       setIsLoading(false);
+      // Remove temporary message on error
+      setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')));
     },
   });
 
@@ -106,14 +126,7 @@ export function ChatContainer({ sessionId, initialMessages = [] }: ChatContainer
     });
   };
 
-  // Use effect to update messages when messageData changes
-  useEffect(() => {
-    if (messageData && messageData.messages.length > 0) {
-      setMessages(messageData.messages);
-      setCursor(messageData.nextCursor || null);
-      setHasMore(!!messageData.nextCursor);
-    }
-  }, [messageData]);
+
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
